@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="radar.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="mast-in">
+    <p class="kicker">Token launch radar &middot; comps curve, tested blind</p>
+    <h1>Which pre-token protocol is worth farming next?</h1>
+    <p class="lede">Every protocol below records no token in the snapshot. Each is ranked by an
+    <strong>implied value</strong> fitted from the traded tokens in the same snapshot &mdash; not from a
+    hand-picked list of names &mdash; and each carries a concrete farm plan netted to dollars.</p>
+    <dl class="stats" id="stats"></dl>
+    <p class="asof" id="asof"></p>
+  </div>
+</header>
+
+<main>
+  <section class="panel method" id="method">
+    <h2>How the value is fitted &mdash; and how it was tested blind</h2>
+    <p>The curve is an OLS regression on the snapshot&rsquo;s own traded tokens
+    (protocols with a positive market cap and a positive TVL):</p>
+    <p class="formula">log(mcap) = a + b &times; log(TVL) + offset[category]</p>
+    <p>Implied value = exp(prediction) &times; P(launch), where P(launch) is a stated function of
+    TVL size, 7-day TVL growth and days listed with no token. A protocol&rsquo;s token is
+    <em>recorded as absent</em> in the snapshot &mdash; never claimed to not exist.</p>
+    <div class="method-grid">
+      <div>
+        <h3>Fit</h3>
+        <table class="mini" id="fit-table"></table>
+      </div>
+      <div>
+        <h3>Blind validation</h3>
+        <table class="mini" id="valid-table"></table>
+        <p class="note">The band is wide: TVL explains only part of a market cap. The board ranks by the
+        central estimate and shows the 90% band on every row, so a reader can see how rough the
+        number is before farming it.</p>
+      </div>
+      <div>
+        <h3>Launch odds &amp; farm maths</h3>
+        <p class="small">P(launch) = clamp((0.10 + 0.55 &times; size) &times; growth &times; maturity, 0.05, 0.80).
+        Size runs 0&ndash;1 over log10(TVL) $5M&ndash;$10B. Growth is 1 + clamped 7-day change &divide; 200.
+        Maturity is 0.75&ndash;1.00 over 0&ndash;3 years listed with no token.</p>
+        <p class="small">Expected value to one active farmer = implied value &times; 0.01% &minus; farm cost
+        (gas for 7 transactions + 5% a year on locked capital). Verdict: <b>farm</b> at $250 or more,
+        <b>thin</b> at $0 or more, <b>skip</b> below $0. The 0.01% share is an assumption, stated
+        here so it can be argued with.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="controls" aria-label="Board controls">
+    <label>Search <input id="q" type="search" placeholder="name or slug&hellip;" autocomplete="off"></label>
+    <label>Category <select id="cat"><option value="">All categories</option></select></label>
+    <label>Verdict <select id="verdict"><option value="">All verdicts</option><option value="farm">farm</option><option value="thin">thin</option><option value="skip">skip</option></select></label>
+    <label class="check"><input id="wl" type="checkbox"> Watchlist only</label>
+    <label>Sort <select id="sort">
+      <option value="implied">Implied value (high first)</option>
+      <option value="tvl">TVL (high first)</option>
+      <option value="growth">7-day growth (high first)</option>
+      <option value="ev">Expected value (high first)</option>
+      <option value="age">Age, no token (oldest first)</option>
+      <option value="name">Name (A&ndash;Z)</option>
+    </select></label>
+    <span class="count" id="count"></span>
+  </section>
+
+  <section class="board-wrap">
+    <table class="board" id="board">
+      <thead><tr>
+        <th data-k="rank">#</th>
+        <th data-k="name">Protocol</th>
+        <th data-k="category">Category</th>
+        <th data-k="chains">Chains</th>
+        <th data-k="tvl" class="num">TVL</th>
+        <th data-k="growth" class="num">7d</th>
+        <th data-k="age" class="num">Age</th>
+        <th data-k="implied" class="num">Implied value</th>
+        <th class="num">90% band</th>
+        <th data-k="prob" class="num">P(launch)</th>
+        <th data-k="ev" class="num">Expected $</th>
+        <th data-k="verdict">Verdict</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="hint">Click any row for the protocol&rsquo;s detail, model breakdown and farm plan.</p>
+  </section>
+
+  <section class="panel detail" id="detail" hidden>
+    <div class="detail-head">
+      <h2 id="d-name"></h2>
+      <button id="d-close" type="button">Close &times;</button>
+    </div>
+    <dl class="d-grid" id="d-grid"></dl>
+    <h3>Why this number</h3>
+    <p id="d-why"></p>
+    <h3>Farm plan &mdash; concrete steps, cost and time</h3>
+    <ol class="steps" id="d-steps"></ol>
+    <p class="small" id="d-ev"></p>
+  </section>
+
+  <section class="panel live">
+    <h2>Already trading &mdash; the anchors the curve is fitted on</h2>
+    <p>These protocols&rsquo; tokens already trade, so the board shows the market&rsquo;s own value for them,
+    never a model&rsquo;s. The 30 largest by market cap are below; the full anchor set is the
+    <span id="live-n"></span> traded tokens the regression uses.</p>
+    <table class="board live-table" id="live-table">
+      <thead><tr><th>Protocol</th><th>Category</th><th class="num">TVL</th><th class="num">Market cap</th><th class="num">MCap / TVL</th><th class="num">7d</th></tr></thead>
+      <tbody id="live-rows"></tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p>Implied values are this radar&rsquo;s own claim, fitted from the sealed snapshot, and are not a
+    prediction that a token will launch, or when. Farm plans are a starting point: check the
+    protocol&rsquo;s own pages before sending funds, and never pay anyone to claim an airdrop.</p>
+  </footer>
+</main>
+<script src="../data.js"></script>
+<script src="radar.js"></script>
+</body>
+</html>
